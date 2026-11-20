@@ -1,0 +1,10 @@
+{
+	"name": "LS_CARESYNC_KV",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://halthcaresynckv.vault.azure.net/"
+		}
+	}
+}
