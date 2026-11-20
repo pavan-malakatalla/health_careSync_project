@@ -1,0 +1,19 @@
+{
+	"name": "LS_AzureDatabricks",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-7405617566491516.16.azuredatabricks.net",
+			"accessToken": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_CARESYNC_KV",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "healthcaresynckvaultdbricks"
+			},
+			"existingClusterId": "1118-160138-hink2rhe"
+		}
+	}
+}
