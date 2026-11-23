@@ -47,20 +47,101 @@
 					},
 					"activities": [
 						{
-							"name": "Set variable",
-							"type": "SetVariable",
-							"dependsOn": [],
+							"name": "ingest from source to silvder",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "insert InProgress status",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
-								"secureOutput": false,
 								"secureInput": false
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"variableName": "testing",
-								"value": {
-									"value": "@item().table_id",
-									"type": "Expression"
+								"pipeline": {
+									"referenceName": "pl_source_silver_inner",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"table_id": {
+										"value": "@item().table_id",
+										"type": "Expression"
+									},
+									"adf_run_id": {
+										"value": "@pipeline().parameters.adf_run_id",
+										"type": "Expression"
+									}
 								}
+							}
+						},
+						{
+							"name": "insert InProgress status",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "LS_AzureSqlDatabase",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "INSERT into ctrl.audit_log (adf_run_id, table_id, stage, status,\n            start_time)\nVALUES(@{pipeline().parameters.adf_run_id}', @{item().table_id},\n            'SOURCE_TO_SILVER','IN_PROGRESS', SYSUTCDATETIME())",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "update failed status",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "ingest from source to silvder",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "LS_AzureSqlDatabase",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@concat(\n    'UPDATE ctrl.audit_log SET status = ''FAILED'', ',\n    'end_time = SYSUTCDATETIME() ',\n    'WHERE adf_run_id = ''',\n    pipeline().parameters.adf_run_id,\n    ''' AND table_id = ',\n    string(item().table_id),\n    ';'\n)",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
 							}
 						}
 					]
@@ -71,6 +152,10 @@
 			"source_system": {
 				"type": "string",
 				"defaultValue": "neon_postgress"
+			},
+			"adf_run_id": {
+				"type": "string",
+				"defaultValue": "a3"
 			}
 		},
 		"variables": {
